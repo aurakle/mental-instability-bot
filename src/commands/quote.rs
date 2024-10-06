@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::get_config;
+use crate::config::get_config;
 
 use super::{Context, Error};
 use poise::CreateReply;
@@ -27,7 +27,7 @@ async fn quote_internal(
     attachments: Option<&Vec<Attachment>>,
     message_url: Option<&String>,
 ) -> Result<(), Error> {
-    match get_config!(ctx.serenity_context()).quotes_channel {
+    match get_config().quotes_channel {
         Some(id) => {
             let channel = ChannelId::new(id);
 

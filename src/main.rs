@@ -14,7 +14,9 @@ mod util;
 
 use std::fs;
 
+use config::get_config;
 use config::Config;
+use db::init_db;
 use log_upload::check_for_logs;
 use mappings::cache::MappingsCache;
 use poise::FrameworkOptions;
@@ -100,32 +102,7 @@ async fn main() {
         ..Default::default()
     };
 
-    let config: Config =
-        toml::from_str(&fs::read_to_string("config.toml").expect("reading config"))
-            .expect("parsing config");
-
-    // let (db, connection) = tokio_postgres::Config::new()
-    //     .host(&config.db_host)
-    //     .user(&config.db_username)
-    //     .password(&config.db_password)
-    //     .connect(NoTls)
-    //     .await
-    //     .expect("Failed to connect to database");
-
-    // tokio::spawn(async move {
-    //     if let Err(e) = connection.await {
-    //         eprintln!("Connection error: {}", e);
-    //     }
-    // });
-
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&format!(
-            "postgres://{}:{}@{}/test",
-            config.db_username, config.db_password, config.db_host
-        ))
-        .await
-        .expect("Failed to connect to database");
+    init_db().await;
 
     let framework = poise::Framework::builder()
         .setup(move |ctx, _ready, framework| {
@@ -140,16 +117,14 @@ async fn main() {
 
     // Login with a bot token from the environment
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
-    let mut client = Client::builder(&config.token, intents)
+    let mut client = Client::builder(&get_config().token, intents)
         .event_handler(Handler)
         .framework(framework)
         .await
         .expect("Error creating client");
     {
         let mut data_lock = client.data.write().await;
-        data_lock.insert::<ConfigData>(config);
         data_lock.insert::<MappingsCacheKey>(MappingsCache::create());
-        data_lock.insert::<DatabaseKey>(pool);
     }
 
     // start listening for events by starting a single shard
