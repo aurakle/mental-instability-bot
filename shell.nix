@@ -10,7 +10,7 @@ let
     openssl
   ];
 in pkgs.mkShell {
-  name = "connectr";
+  name = "mental-instability-bot";
 
   buildInputs = libs ++ (with pkgs; [
     (rust-bin.selectLatestNightlyWith (toolchain: toolchain.default))
