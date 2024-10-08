@@ -53,3 +53,29 @@ WHERE date_trunc('hour', time) = CURRENT_TIME
         .fetch_all(get_connection_pool().await)
         .await
 }
+
+//TODO: same issue as noted in the todo below
+pub(crate) async fn fetch_reminders_from(user_id: i64) -> Result<Vec<Reminder>> {
+    sqlx::query_as::<Postgres, Reminder>("
+SELECT * FROM reminders
+WHERE reminders.user_id = $1
+        ")
+        .bind(user_id)
+        .fetch_all(get_connection_pool().await)
+        .await
+}
+
+//TODO: make this take a u64 and apply unchanging conversion
+pub(crate) async fn add_reminder(user_id: i64, time: DateTime<Utc>, message: String) -> Result<()> {
+    let mut trans = get_connection_pool().await.begin().await?;
+    sqlx::query("
+INSERT INTO reminders VALUES (DEFAULT, $1, $2, $3)
+        ")
+        .bind(user_id)
+        .bind(time)
+        .bind(message)
+        .execute(&mut *trans)
+        .await?;
+
+    trans.commit().await
+}
